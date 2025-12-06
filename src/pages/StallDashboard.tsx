@@ -108,8 +108,18 @@ export default function StallDashboard() {
   if (!stall) return null;
   const totalBilledCount = transactions.length;
   const totalBilledAmount = transactions.reduce((sum, t) => sum + Number(t.total), 0);
-  const totalMarginDeducted = payments.reduce((sum, p) => sum + Number(p.margin_deducted || 0), 0);
-  const newBillBalance = totalBilledAmount - totalMarginDeducted;
+  
+  // Calculate total bill balance from all transactions (after commission deduction per item)
+  const totalBillBalance = transactions.reduce((txSum, tx) => {
+    const items = Array.isArray(tx.items) ? tx.items as Array<{ price?: number; quantity?: number; event_margin?: number }> : [];
+    const txBalance = items.reduce((sum, item) => {
+      const itemTotal = Number(item.price || 0) * Number(item.quantity || 1);
+      const commission = Number(item.event_margin || 20);
+      const itemBalance = itemTotal * (1 - commission / 100);
+      return sum + itemBalance;
+    }, 0);
+    return txSum + txBalance;
+  }, 0);
 
   // Separate pending and delivered orders
   const pendingOrders = transactions.filter(t => t.status !== "delivered");
@@ -218,7 +228,7 @@ export default function StallDashboard() {
             <CardContent>
               <div className="text-2xl font-bold flex items-center text-green-600">
                 <IndianRupee className="h-5 w-5" />
-                {newBillBalance.toLocaleString()}
+                {totalBillBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
               <p className="text-xs text-muted-foreground">After commission deduction</p>
             </CardContent>
