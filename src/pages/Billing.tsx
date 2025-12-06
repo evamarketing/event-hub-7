@@ -41,6 +41,8 @@ export default function Billing() {
   const [selectedStalls, setSelectedStalls] = useState<string[]>([]);
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerMobile, setCustomerMobile] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [registration, setRegistration] = useState({
@@ -144,7 +146,7 @@ export default function Billing() {
 
   // Create bill mutation
   const createBillMutation = useMutation({
-    mutationFn: async (bill: { stall_id: string; items: BillItem[]; subtotal: number; total: number }) => {
+    mutationFn: async (bill: { stall_id: string; items: BillItem[]; subtotal: number; total: number; customer_name?: string; customer_mobile?: string }) => {
       const receiptNumber = `BILL-${Date.now()}`;
       const { data, error } = await supabase
         .from('billing_transactions')
@@ -154,7 +156,9 @@ export default function Billing() {
           subtotal: bill.subtotal,
           total: bill.total,
           receipt_number: receiptNumber,
-          status: 'pending'
+          status: 'pending',
+          customer_name: bill.customer_name || null,
+          customer_mobile: bill.customer_mobile || null
         })
         .select()
         .single();
@@ -165,6 +169,8 @@ export default function Billing() {
       queryClient.invalidateQueries({ queryKey: ['billing_transactions'] });
       setBillItems([]);
       setSelectedStalls([]);
+      setCustomerName("");
+      setCustomerMobile("");
       toast.success("Bill generated successfully!");
     },
     onError: (error) => {
@@ -327,7 +333,9 @@ export default function Billing() {
       stall_id: selectedStalls[0],
       items: billItems,
       subtotal: total,
-      total: total
+      total: total,
+      customer_name: customerName.trim() || undefined,
+      customer_mobile: customerMobile.trim() || undefined
     });
   };
 
@@ -518,6 +526,30 @@ export default function Billing() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Customer Info (Optional) */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label htmlFor="customerName" className="text-xs">Customer Name (Optional)</Label>
+                          <Input
+                            id="customerName"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Enter name"
+                            maxLength={100}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor="customerMobile" className="text-xs">Mobile (Optional)</Label>
+                          <Input
+                            id="customerMobile"
+                            value={customerMobile}
+                            onChange={(e) => setCustomerMobile(e.target.value)}
+                            placeholder="Enter mobile"
+                            maxLength={15}
+                          />
+                        </div>
+                      </div>
                       
                       <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                         <span className="text-lg font-semibold">Total</span>
@@ -555,16 +587,22 @@ export default function Billing() {
                       {bills.slice(0, 5).map((bill: any) => (
                         <div key={bill.id} className="p-4 border border-border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-semibold text-foreground">
-                              {bill.stalls?.counter_name || getStallName(bill.stall_id)}
-                            </span>
+                            <div>
+                              <Badge variant="outline" className="mr-2">#{bill.serial_number || '-'}</Badge>
+                              <span className="font-semibold text-foreground">
+                                {bill.stalls?.counter_name || getStallName(bill.stall_id)}
+                              </span>
+                            </div>
                             <Badge variant={bill.status === 'paid' ? 'default' : 'secondary'}>
                               {bill.status === 'paid' ? 'Paid' : 'Pending'}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {bill.receipt_number}
-                          </p>
+                          {bill.customer_name && (
+                            <p className="text-sm text-foreground">Customer: {bill.customer_name}</p>
+                          )}
+                          {bill.customer_mobile && (
+                            <p className="text-xs text-muted-foreground">Mobile: {bill.customer_mobile}</p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {formatDate(bill.created_at)}
                           </p>
