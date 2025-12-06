@@ -17,9 +17,12 @@ export type Database = {
       billing_transactions: {
         Row: {
           created_at: string | null
+          customer_mobile: string | null
+          customer_name: string | null
           id: string
           items: Json
           receipt_number: string
+          serial_number: number | null
           stall_id: string
           status: string
           subtotal: number
@@ -27,9 +30,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          customer_mobile?: string | null
+          customer_name?: string | null
           id?: string
           items?: Json
           receipt_number: string
+          serial_number?: number | null
           stall_id: string
           status?: string
           subtotal: number
@@ -37,9 +43,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          customer_mobile?: string | null
+          customer_name?: string | null
           id?: string
           items?: Json
           receipt_number?: string
+          serial_number?: number | null
           stall_id?: string
           status?: string
           subtotal?: number
