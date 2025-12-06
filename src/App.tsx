@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { StallAuthProvider } from "@/contexts/StallAuthContext";
 import Index from "./pages/Index";
 import Programs from "./pages/Programs";
 import Team from "./pages/Team";
@@ -10,28 +11,34 @@ import FoodCourt from "./pages/FoodCourt";
 import Billing from "./pages/Billing";
 import Accounts from "./pages/Accounts";
 import PhotoGallery from "./pages/PhotoGallery";
+import StallLogin from "./pages/StallLogin";
+import StallDashboard from "./pages/StallDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/programs" element={<Programs />} />
-          <Route path="/team" element={<Team />} />
-          <Route path="/food-court" element={<FoodCourt />} />
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/photo-gallery" element={<PhotoGallery />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <StallAuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/programs" element={<Programs />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/food-court" element={<FoodCourt />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/photo-gallery" element={<PhotoGallery />} />
+            <Route path="/stall-login" element={<StallLogin />} />
+            <Route path="/my-profile" element={<StallDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </StallAuthProvider>
   </QueryClientProvider>
 );
 

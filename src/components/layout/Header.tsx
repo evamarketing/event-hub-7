@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,10 @@ const navItems = [{
 }, {
   label: "Accounts",
   href: "/accounts"
+}, {
+  label: "My Profile",
+  href: "/stall-login",
+  icon: User
 }];
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,7 +39,8 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1">
-          {navItems.map(item => <Link key={item.href} to={item.href} className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors", location.pathname === item.href ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+          {navItems.map(item => <Link key={item.href} to={item.href} className={cn("px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1", location.pathname === item.href || (item.href === "/stall-login" && location.pathname === "/my-profile") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+              {item.icon && <item.icon className="h-4 w-4" />}
               {item.label}
             </Link>)}
         </nav>
@@ -48,7 +53,8 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {mobileMenuOpen && <nav className="md:hidden border-t border-border bg-card p-4 animate-slide-up">
-          {navItems.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileMenuOpen(false)} className={cn("block px-4 py-3 rounded-lg text-sm font-medium transition-colors", location.pathname === item.href ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+          {navItems.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileMenuOpen(false)} className={cn("flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors", location.pathname === item.href || (item.href === "/stall-login" && location.pathname === "/my-profile") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+              {item.icon && <item.icon className="h-4 w-4" />}
               {item.label}
             </Link>)}
         </nav>}
