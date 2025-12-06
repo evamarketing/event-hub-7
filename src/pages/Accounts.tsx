@@ -334,6 +334,31 @@ export default function Accounts() {
                       ))}
                     </select>
                   </div>
+                  {participantPayment.stallId && (() => {
+                    const stallBilledAmount = billingTransactions
+                      .filter((t: any) => t.stall_id === participantPayment.stallId)
+                      .reduce((sum: number, t: any) => sum + (t.total || 0), 0);
+                    const stallPaidAmount = payments
+                      .filter((p: any) => p.stall_id === participantPayment.stallId && p.payment_type === "participant" && p.category !== "stall_booking")
+                      .reduce((sum: number, p: any) => sum + (p.total_billed || 0), 0);
+                    const stallBalance = stallBilledAmount - stallPaidAmount;
+                    return (
+                      <div className="p-4 bg-muted rounded-lg">
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Billed Amount</p>
+                            <p className="text-lg font-semibold text-foreground">₹{stallBilledAmount.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Bill Balance</p>
+                            <p className={`text-lg font-bold ${stallBalance > 0 ? 'text-warning' : 'text-success'}`}>
+                              ₹{stallBalance.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-2">
                     <Label>Total Billed Amount (₹)</Label>
                     <Input
