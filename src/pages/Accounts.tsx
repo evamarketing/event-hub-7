@@ -152,8 +152,9 @@ export default function Accounts() {
     .reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0);
   const cashBalance = totalCollected - totalPaid;
 
+  // Participant payments are payments made TO participants (excluding stall booking fees which are revenue)
   const participantPaymentsTotal = payments
-    .filter((p: any) => p.payment_type === "participant")
+    .filter((p: any) => p.payment_type === "participant" && p.category !== "stall_booking")
     .reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0);
 
   const otherPaymentsTotal = payments
