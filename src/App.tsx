@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StallAuthProvider } from "@/contexts/StallAuthContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Programs from "./pages/Programs";
 import Team from "./pages/Team";
@@ -31,16 +32,19 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Index />} />
               <Route path="/programs" element={<Programs />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/food-court" element={<FoodCourt />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/accounts" element={<Accounts />} />
               <Route path="/photo-gallery" element={<PhotoGallery />} />
               <Route path="/stall-login" element={<StallLogin />} />
-              <Route path="/my-profile" element={<StallDashboard />} />
               <Route path="/admin-login" element={<AdminLogin />} />
+              
+              {/* Protected routes - require stall login */}
+              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+              <Route path="/food-court" element={<ProtectedRoute><FoodCourt /></ProtectedRoute>} />
+              <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+              <Route path="/accounts" element={<ProtectedRoute><Accounts /></ProtectedRoute>} />
+              <Route path="/my-profile" element={<ProtectedRoute><StallDashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/admin/manage-admins" element={<ManageAdmins />} />
               <Route path="/admin/permissions" element={<PermissionManagement />} />
