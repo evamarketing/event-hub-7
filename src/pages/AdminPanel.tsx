@@ -5,10 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { Shield, Users, Settings, LogOut, UserPlus, Key } from 'lucide-react';
+import { 
+  Shield, Users, Settings, LogOut, UserPlus, Key, 
+  Receipt, Calendar, Camera, UserCheck, UtensilsCrossed, Wallet 
+} from 'lucide-react';
+
+type AppModule = 'billing' | 'team' | 'programs' | 'accounts' | 'food_court' | 'photos' | 'registrations';
+
+const moduleConfig: Record<AppModule, { label: string; description: string; icon: typeof Shield; href: string; color: string }> = {
+  billing: { label: 'Billing', description: 'Manage bills and transactions', icon: Receipt, href: '/billing', color: 'blue' },
+  team: { label: 'Team', description: 'Manage team members', icon: Users, href: '/team', color: 'green' },
+  programs: { label: 'Programs', description: 'Manage event programs', icon: Calendar, href: '/programs', color: 'purple' },
+  accounts: { label: 'Accounts', description: 'Manage financial accounts', icon: Wallet, href: '/accounts', color: 'orange' },
+  food_court: { label: 'Food Court', description: 'Manage food stalls', icon: UtensilsCrossed, href: '/food-court', color: 'red' },
+  photos: { label: 'Photo Gallery', description: 'Manage event photos', icon: Camera, href: '/photo-gallery', color: 'pink' },
+  registrations: { label: 'Registrations', description: 'Manage event registrations', icon: UserCheck, href: '/accounts', color: 'cyan' },
+};
 
 export default function AdminPanel() {
-  const { admin, logout, isSuperAdmin, isLoading } = useAdminAuth();
+  const { admin, logout, isSuperAdmin, isLoading, hasPermission } = useAdminAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,6 +49,11 @@ export default function AdminPanel() {
     navigate('/admin-login');
   };
 
+  // Get modules the admin can access
+  const accessibleModules = (Object.keys(moduleConfig) as AppModule[]).filter(
+    module => isSuperAdmin() || hasPermission(module, 'read')
+  );
+
   return (
     <PageLayout>
       <div className="container py-8">
@@ -58,9 +78,11 @@ export default function AdminPanel() {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isSuperAdmin() && (
-            <>
+        {/* Super Admin Management Section */}
+        {isSuperAdmin() && (
+          <>
+            <h2 className="text-lg font-semibold mb-4">Admin Management</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <Link to="/admin/manage-admins">
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                   <CardHeader>
@@ -70,11 +92,6 @@ export default function AdminPanel() {
                     <CardTitle className="text-lg">Manage Admins</CardTitle>
                     <CardDescription>Add, edit, or remove admin accounts</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Create new admin accounts and manage existing ones
-                    </p>
-                  </CardContent>
                 </Card>
               </Link>
 
@@ -87,50 +104,43 @@ export default function AdminPanel() {
                     <CardTitle className="text-lg">Permission Management</CardTitle>
                     <CardDescription>Allocate permissions to admins</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Control which modules and actions each admin can access
-                    </p>
-                  </CardContent>
                 </Card>
               </Link>
-            </>
-          )}
+            </div>
+          </>
+        )}
 
-          <Link to="/admin/users">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-              <CardHeader>
-                <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-2">
-                  <Users className="h-5 w-5 text-purple-500" />
-                </div>
-                <CardTitle className="text-lg">View All Admins</CardTitle>
-                <CardDescription>See all admin accounts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  View the list of all admin users and their roles
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Card className="h-full">
-            <CardHeader>
-              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-2">
-                <Settings className="h-5 w-5 text-orange-500" />
-              </div>
-              <CardTitle className="text-lg">Your Permissions</CardTitle>
-              <CardDescription>View your access rights</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {isSuperAdmin() 
-                  ? 'As Super Admin, you have full access to all modules'
-                  : 'Check your assigned permissions for each module'}
-              </p>
+        {/* Accessible Modules Section */}
+        <h2 className="text-lg font-semibold mb-4">
+          {isSuperAdmin() ? 'All Modules' : 'Your Permitted Modules'}
+        </h2>
+        {accessibleModules.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {accessibleModules.map(module => {
+              const config = moduleConfig[module];
+              const IconComponent = config.icon;
+              return (
+                <Link key={module} to={config.href}>
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardHeader>
+                      <div className={`h-10 w-10 rounded-lg bg-${config.color}-500/10 flex items-center justify-center mb-2`}>
+                        <IconComponent className={`h-5 w-5 text-${config.color}-500`} />
+                      </div>
+                      <CardTitle className="text-lg">{config.label}</CardTitle>
+                      <CardDescription>{config.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              No modules assigned. Contact a Super Admin to get access.
             </CardContent>
           </Card>
-        </div>
+        )}
       </div>
     </PageLayout>
   );
