@@ -134,10 +134,12 @@ export default function StallDashboard() {
   const deliveredOrders = transactions.filter(t => t.status === "delivered");
   const OrderTable = ({
     orders,
-    showDeliverButton = false
+    showDeliverButton = false,
+    onDeliver
   }: {
     orders: typeof transactions;
     showDeliverButton?: boolean;
+    onDeliver?: (orderId: string) => void;
   }) => <div className="overflow-x-auto">
       <Table>
         <TableHeader>
@@ -170,8 +172,8 @@ export default function StallDashboard() {
               <TableCell className="text-xs">
                 {tx.created_at ? format(new Date(tx.created_at), "dd/MM/yy HH:mm") : "-"}
               </TableCell>
-              {showDeliverButton && <TableCell>
-                  <Button size="sm" onClick={() => handleDeliverOrder(tx.id)} disabled={updateOrderStatus.isPending}>
+              {showDeliverButton && onDeliver && <TableCell>
+                  <Button size="sm" onClick={() => onDeliver(tx.id)} disabled={updateOrderStatus.isPending}>
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Deliver
                   </Button>
@@ -268,7 +270,7 @@ export default function StallDashboard() {
               </TabsList>
               
               <TabsContent value="pending">
-                {pendingOrders.length === 0 ? <p className="text-center text-muted-foreground py-8">No pending orders</p> : <OrderTable orders={pendingOrders} showDeliverButton={true} />}
+                {pendingOrders.length === 0 ? <p className="text-center text-muted-foreground py-8">No pending orders</p> : <OrderTable orders={pendingOrders} showDeliverButton={true} onDeliver={handleDeliverOrder} />}
               </TabsContent>
               
               <TabsContent value="delivered">
