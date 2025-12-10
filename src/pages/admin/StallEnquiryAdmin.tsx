@@ -686,7 +686,11 @@ export default function StallEnquiryAdmin() {
                             const isProductField2 = label === 'ഉൽപ്പന്നം വിൽക്കുന്നത്' || label.includes('വിൽക്കുന്നത്');
                             const isHighlighted = isProductField1 || isProductField2;
                             const sortOrder = isProductField1 ? 0 : isProductField2 ? 1 : 2;
-                            return { fieldId, value, label, isHighlighted, sortOrder };
+                            // Handle object values by converting to string
+                            const displayValue = typeof value === 'object' && value !== null 
+                              ? JSON.stringify(value, null, 2) 
+                              : String(value);
+                            return { fieldId, value: displayValue, label, isHighlighted, sortOrder };
                           })
                           .sort((a, b) => a.sortOrder - b.sortOrder)
                           .map(({ fieldId, value, label, isHighlighted }, index) => (
@@ -695,7 +699,7 @@ export default function StallEnquiryAdmin() {
                               className={`p-3 ${isHighlighted ? 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500' : index % 2 === 0 ? 'bg-muted/50' : 'bg-background'}`}
                             >
                               <p className={`font-semibold text-sm ${isHighlighted ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>{label}</p>
-                              <p className={`mt-1 ${isHighlighted ? 'font-medium text-green-900 dark:text-green-200' : 'text-foreground'}`}>{value}</p>
+                              <p className={`mt-1 whitespace-pre-wrap ${isHighlighted ? 'font-medium text-green-900 dark:text-green-200' : 'text-foreground'}`}>{value}</p>
                             </div>
                           ))}
                       </div>
