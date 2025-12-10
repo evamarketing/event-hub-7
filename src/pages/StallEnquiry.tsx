@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Store, Send, CheckCircle } from 'lucide-react';
+import { Store, Send, CheckCircle, Plus, Trash2 } from 'lucide-react';
 
 interface EnquiryField {
   id: string;
@@ -35,6 +35,21 @@ interface Ward {
   panchayath_id: string;
 }
 
+interface Product {
+  product_name: string;
+  cost_price: string;
+  selling_price: string;
+  selling_unit: string;
+}
+
+// Product field IDs from database
+const PRODUCT_FIELD_IDS = [
+  '7467629e-6c4b-4f43-9652-cf5eb54322ab', // കൊണ്ടുവരാൻ ഉദ്ദേശിക്കുന്ന ഉൽപ്പന്നം
+  '0654a8be-ecb4-4df3-8edf-13753b0e262f', // വിൽക്കുമ്പോൾ നിങ്ങൾക്ക് ലഭിക്കേണ്ട തുക (Cost Price)
+  'bc136f0b-c9ed-471d-baf9-f06b2f991ff6', // ഉപഭോക്താവിന് വിൽക്കുന്ന വില (Selling Price / MRP)
+  '3f6e4af5-5123-4788-b075-3ef363b7c613', // ഉൽപ്പന്നം വിൽക്കുന്നത്
+];
+
 export default function StallEnquiry() {
   const { toast } = useToast();
   const [name, setName] = useState('');
@@ -43,6 +58,9 @@ export default function StallEnquiry() {
   const [selectedWard, setSelectedWard] = useState('');
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [products, setProducts] = useState<Product[]>([
+    { product_name: '', cost_price: '', selling_price: '', selling_unit: '' }
+  ]);
 
   // Fetch form fields
   const { data: fields = [] } = useQuery({
@@ -92,6 +110,25 @@ export default function StallEnquiry() {
     setSelectedWard('');
   }, [selectedPanchayath]);
 
+  // Filter out product fields from dynamic fields
+  const nonProductFields = fields.filter(f => !PRODUCT_FIELD_IDS.includes(f.id));
+
+  const addProduct = () => {
+    setProducts([...products, { product_name: '', cost_price: '', selling_price: '', selling_unit: '' }]);
+  };
+
+  const removeProduct = (index: number) => {
+    if (products.length > 1) {
+      setProducts(products.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateProduct = (index: number, field: keyof Product, value: string) => {
+    const updated = [...products];
+    updated[index][field] = value;
+    setProducts(updated);
+  };
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       // Check for duplicate mobile number
@@ -107,15 +144,26 @@ export default function StallEnquiry() {
         throw new Error('ഈ മൊബൈൽ നമ്പർ ഉപയോഗിച്ച് ഇതിനകം ഒരു അപേക്ഷ സമർപ്പിച്ചിട്ടുണ്ട്.');
       }
 
+      // Combine responses with products data
+      const allResponses: Record<string, unknown> = {
+        ...responses,
+        products: products.map(p => ({
+          product_name: p.product_name,
+          cost_price: p.cost_price,
+          selling_price: p.selling_price,
+          selling_unit: p.selling_unit
+        }))
+      };
+
       const { error } = await supabase
         .from('stall_enquiries')
-        .insert({
+        .insert([{
           name,
           mobile: mobile.trim(),
           panchayath_id: selectedPanchayath || null,
           ward_id: selectedWard || null,
-          responses
-        });
+          responses: allResponses as any
+        }]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -156,8 +204,29 @@ export default function StallEnquiry() {
       return;
     }
 
-    // Check required fields
-    for (const field of fields) {
+    // Validate products
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (!p.product_name.trim()) {
+        toast({ title: `ഉൽപ്പന്നം ${i + 1}: ഉൽപ്പന്നത്തിന്റെ പേര് നൽകുക`, variant: 'destructive' });
+        return;
+      }
+      if (!p.cost_price.trim()) {
+        toast({ title: `ഉൽപ്പന്നം ${i + 1}: Cost Price നൽകുക`, variant: 'destructive' });
+        return;
+      }
+      if (!p.selling_price.trim()) {
+        toast({ title: `ഉൽപ്പന്നം ${i + 1}: Selling Price നൽകുക`, variant: 'destructive' });
+        return;
+      }
+      if (!p.selling_unit) {
+        toast({ title: `ഉൽപ്പന്നം ${i + 1}: വിൽക്കുന്ന രീതി തിരഞ്ഞെടുക്കുക`, variant: 'destructive' });
+        return;
+      }
+    }
+
+    // Check required fields (non-product fields)
+    for (const field of nonProductFields) {
       if (field.is_required && shouldShowField(field) && !responses[field.id]) {
         toast({ title: `${field.field_label} നൽകുക`, variant: 'destructive' });
         return;
@@ -261,9 +330,100 @@ export default function StallEnquiry() {
                 </div>
               </div>
 
-              {/* Dynamic fields from database */}
+              {/* Product fields - repeatable section */}
               <div className="space-y-4 pt-4 border-t">
-                {fields.map((field) => {
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">ഉൽപ്പന്ന വിവരങ്ങൾ</Label>
+                </div>
+                
+                {products.map((product, index) => (
+                  <Card key={index} className="p-4 bg-muted/30">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          ഉൽപ്പന്നം {index + 1}
+                        </span>
+                        {products.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeProduct(index)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label>കൊണ്ടുവരാൻ ഉദ്ദേശിക്കുന്ന ഉൽപ്പന്നം *</Label>
+                        <Input
+                          value={product.product_name}
+                          onChange={(e) => updateProduct(index, 'product_name', e.target.value)}
+                          placeholder="ഉൽപ്പന്നത്തിന്റെ പേര്"
+                        />
+                      </div>
+
+                      <div>
+                        <Label>വിൽക്കുമ്പോൾ നിങ്ങൾക്ക് ലഭിക്കേണ്ട തുക (Cost Price) *</Label>
+                        <Input
+                          type="number"
+                          value={product.cost_price}
+                          onChange={(e) => updateProduct(index, 'cost_price', e.target.value)}
+                          placeholder="Cost Price"
+                        />
+                      </div>
+
+                      <div>
+                        <Label>ഉപഭോക്താവിന് വിൽക്കുന്ന വില (Selling Price / MRP) *</Label>
+                        <Input
+                          type="number"
+                          value={product.selling_price}
+                          onChange={(e) => updateProduct(index, 'selling_price', e.target.value)}
+                          placeholder="Selling Price / MRP"
+                        />
+                      </div>
+
+                      <div>
+                        <Label>ഉൽപ്പന്നം വിൽക്കുന്നത് *</Label>
+                        <RadioGroup
+                          value={product.selling_unit}
+                          onValueChange={(value) => updateProduct(index, 'selling_unit', value)}
+                          className="mt-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="തൂക്കത്തിൽ" id={`unit-weight-${index}`} />
+                            <Label htmlFor={`unit-weight-${index}`} className="font-normal cursor-pointer">
+                              തൂക്കത്തിൽ
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="എണ്ണത്തിൽ" id={`unit-count-${index}`} />
+                            <Label htmlFor={`unit-count-${index}`} className="font-normal cursor-pointer">
+                              എണ്ണത്തിൽ
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addProduct}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  പുതിയ ഉൽപ്പന്നം ചേർക്കുക
+                </Button>
+              </div>
+
+              {/* Dynamic fields from database (excluding product fields) */}
+              <div className="space-y-4 pt-4 border-t">
+                {nonProductFields.map((field) => {
                   if (!shouldShowField(field)) return null;
 
                   return (
