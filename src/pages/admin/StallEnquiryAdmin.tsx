@@ -520,120 +520,6 @@ export default function StallEnquiryAdmin() {
               </TabsContent>
 
               <TabsContent value="enquiries">
-                {/* View Details Dialog */}
-                <Dialog open={!!viewingEnquiry} onOpenChange={(open) => !open && setViewingEnquiry(null)}>
-                  <DialogContent className="max-w-lg max-h-[90vh]">
-                    <DialogHeader>
-                      <DialogTitle>Enquiry Details</DialogTitle>
-                    </DialogHeader>
-                    {viewingEnquiry && (
-                      <ScrollArea className="max-h-[70vh] pr-4">
-                        <div className="space-y-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Name</Label>
-                              <p className="font-medium">{viewingEnquiry.name}</p>
-                            </div>
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Mobile</Label>
-                              <p className="font-medium">{viewingEnquiry.mobile}</p>
-                            </div>
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Panchayath</Label>
-                              <p className="font-medium">{viewingEnquiry.panchayaths?.name || '-'}</p>
-                            </div>
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Ward</Label>
-                              <p className="font-medium">
-                                {viewingEnquiry.wards 
-                                  ? `${viewingEnquiry.wards.ward_number}${viewingEnquiry.wards.ward_name ? ` - ${viewingEnquiry.wards.ward_name}` : ''}`
-                                  : '-'}
-                              </p>
-                            </div>
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Status</Label>
-                              <p className="font-medium capitalize">{viewingEnquiry.status}</p>
-                            </div>
-                            <div>
-                              <Label className="text-muted-foreground text-xs">Date</Label>
-                              <p className="font-medium">{new Date(viewingEnquiry.created_at).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                          {Object.keys(viewingEnquiry.responses).length > 0 && (
-                            <div className="border-t pt-4">
-                              <Label className="text-muted-foreground text-xs mb-3 block">Form Responses</Label>
-                              <div className="space-y-0 rounded-lg overflow-hidden border">
-                              {Object.entries(viewingEnquiry.responses)
-                                .map(([fieldId, value]) => {
-                                  const field = fields.find(f => f.id === fieldId);
-                                  const label = field?.field_label || fieldId;
-                                  const isProductField1 = label === 'കൊണ്ടുവരാൻ ഉദ്ദേശിക്കുന്ന ഉൽപ്പന്നം' || label.includes('കൊണ്ടുവരാൻ');
-                                  const isProductField2 = label === 'ഉൽപ്പന്നം വിൽക്കുന്നത്' || label.includes('വിൽക്കുന്നത്');
-                                  const isHighlighted = isProductField1 || isProductField2;
-                                  const sortOrder = isProductField1 ? 0 : isProductField2 ? 1 : 2;
-                                  return { fieldId, value, label, isHighlighted, sortOrder };
-                                })
-                                .sort((a, b) => a.sortOrder - b.sortOrder)
-                                .map(({ fieldId, value, label, isHighlighted }, index) => {
-                                  return (
-                                    <div 
-                                      key={fieldId} 
-                                      className={`p-3 ${isHighlighted ? 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500' : index % 2 === 0 ? 'bg-muted/50' : 'bg-background'}`}
-                                    >
-                                      <p className={`font-semibold text-sm ${isHighlighted ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>{label}</p>
-                                      <p className={`mt-1 ${isHighlighted ? 'font-medium text-green-900 dark:text-green-200' : 'text-foreground'}`}>{value}</p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </DialogContent>
-                </Dialog>
-
-                {/* Delete Confirmation Dialog */}
-                <Dialog open={!!deletingEnquiry} onOpenChange={(open) => { if (!open) { setDeletingEnquiry(null); setDeleteVerificationCode(''); } }}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle className="text-red-600">Delete Enquiry</DialogTitle>
-                    </DialogHeader>
-                    {deletingEnquiry && (
-                      <div className="space-y-4 py-4">
-                        <p className="text-sm text-muted-foreground">
-                          Are you sure you want to delete the enquiry from <strong>{deletingEnquiry.name}</strong> ({deletingEnquiry.mobile})?
-                        </p>
-                        <div>
-                          <Label>Enter verification code to confirm</Label>
-                          <Input
-                            type="password"
-                            value={deleteVerificationCode}
-                            onChange={(e) => setDeleteVerificationCode(e.target.value)}
-                            placeholder="Enter verification code"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="destructive" 
-                            onClick={handleDeleteEnquiry}
-                            disabled={deleteEnquiryMutation.isPending}
-                          >
-                            {deleteEnquiryMutation.isPending ? 'Deleting...' : 'Delete'}
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => { setDeletingEnquiry(null); setDeleteVerificationCode(''); }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </DialogContent>
-                </Dialog>
-
                 {/* Panchayath Filter */}
                 <div className="mb-4 flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -748,6 +634,118 @@ export default function StallEnquiryAdmin() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* View Details Dialog - moved outside Tabs for proper rendering */}
+        <Dialog open={!!viewingEnquiry} onOpenChange={(open) => !open && setViewingEnquiry(null)}>
+          <DialogContent className="max-w-lg max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>Enquiry Details</DialogTitle>
+            </DialogHeader>
+            {viewingEnquiry && (
+              <ScrollArea className="max-h-[70vh] pr-4">
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Name</Label>
+                      <p className="font-medium">{viewingEnquiry.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Mobile</Label>
+                      <p className="font-medium">{viewingEnquiry.mobile}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Panchayath</Label>
+                      <p className="font-medium">{viewingEnquiry.panchayaths?.name || '-'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Ward</Label>
+                      <p className="font-medium">
+                        {viewingEnquiry.wards 
+                          ? `${viewingEnquiry.wards.ward_number}${viewingEnquiry.wards.ward_name ? ` - ${viewingEnquiry.wards.ward_name}` : ''}`
+                          : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Status</Label>
+                      <p className="font-medium capitalize">{viewingEnquiry.status}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Date</Label>
+                      <p className="font-medium">{new Date(viewingEnquiry.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  {viewingEnquiry.responses && Object.keys(viewingEnquiry.responses).length > 0 && (
+                    <div className="border-t pt-4">
+                      <Label className="text-muted-foreground text-xs mb-3 block">Form Responses</Label>
+                      <div className="space-y-0 rounded-lg overflow-hidden border">
+                        {Object.entries(viewingEnquiry.responses)
+                          .map(([fieldId, value]) => {
+                            const field = fields.find(f => f.id === fieldId);
+                            const label = field?.field_label || fieldId;
+                            const isProductField1 = label === 'കൊണ്ടുവരാൻ ഉദ്ദേശിക്കുന്ന ഉൽപ്പന്നം' || label.includes('കൊണ്ടുവരാൻ');
+                            const isProductField2 = label === 'ഉൽപ്പന്നം വിൽക്കുന്നത്' || label.includes('വിൽക്കുന്നത്');
+                            const isHighlighted = isProductField1 || isProductField2;
+                            const sortOrder = isProductField1 ? 0 : isProductField2 ? 1 : 2;
+                            return { fieldId, value, label, isHighlighted, sortOrder };
+                          })
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map(({ fieldId, value, label, isHighlighted }, index) => (
+                            <div 
+                              key={fieldId} 
+                              className={`p-3 ${isHighlighted ? 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500' : index % 2 === 0 ? 'bg-muted/50' : 'bg-background'}`}
+                            >
+                              <p className={`font-semibold text-sm ${isHighlighted ? 'text-green-700 dark:text-green-400' : 'text-primary'}`}>{label}</p>
+                              <p className={`mt-1 ${isHighlighted ? 'font-medium text-green-900 dark:text-green-200' : 'text-foreground'}`}>{value}</p>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={!!deletingEnquiry} onOpenChange={(open) => { if (!open) { setDeletingEnquiry(null); setDeleteVerificationCode(''); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-red-600">Delete Enquiry</DialogTitle>
+            </DialogHeader>
+            {deletingEnquiry && (
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to delete the enquiry from <strong>{deletingEnquiry.name}</strong> ({deletingEnquiry.mobile})?
+                </p>
+                <div>
+                  <Label>Enter verification code to confirm</Label>
+                  <Input
+                    type="password"
+                    value={deleteVerificationCode}
+                    onChange={(e) => setDeleteVerificationCode(e.target.value)}
+                    placeholder="Enter verification code"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleDeleteEnquiry}
+                    disabled={deleteEnquiryMutation.isPending}
+                  >
+                    {deleteEnquiryMutation.isPending ? 'Deleting...' : 'Delete'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setDeletingEnquiry(null); setDeleteVerificationCode(''); }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </PageLayout>
   );
