@@ -135,6 +135,90 @@ export type Database = {
           },
         ]
       }
+      food_coupon_bookings: {
+        Row: {
+          created_at: string
+          food_option_id: string
+          id: string
+          mobile: string
+          name: string
+          panchayath_id: string
+          quantity: number
+          status: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          food_option_id: string
+          id?: string
+          mobile: string
+          name: string
+          panchayath_id: string
+          quantity?: number
+          status?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          food_option_id?: string
+          id?: string
+          mobile?: string
+          name?: string
+          panchayath_id?: string
+          quantity?: number
+          status?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_coupon_bookings_food_option_id_fkey"
+            columns: ["food_option_id"]
+            isOneToOne: false
+            referencedRelation: "food_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_coupon_bookings_panchayath_id_fkey"
+            columns: ["panchayath_id"]
+            isOneToOne: false
+            referencedRelation: "panchayaths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_options: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       panchayaths: {
         Row: {
           created_at: string

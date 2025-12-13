@@ -1,6 +1,6 @@
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ModuleCard } from "@/components/dashboard/ModuleCard";
-import { CalendarDays, Camera, ClipboardList, Store } from "lucide-react";
+import { CalendarDays, Camera, ClipboardList, Store, Utensils } from "lucide-react";
 
 const modules = [
   {
@@ -30,6 +30,13 @@ const modules = [
     icon: Store,
     href: "/stall-enquiry",
     color: "warning" as const
+  },
+  {
+    title: "Food Coupon",
+    description: "Pre-book your lunch coupons for the event.",
+    icon: Utensils,
+    href: "/food-coupon",
+    color: "accent" as const
   }
 ];
 

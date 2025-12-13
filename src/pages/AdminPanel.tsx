@@ -8,7 +8,7 @@ import { useAdminAuth } from '@/contexts/AdminAuthContext';
 import { 
   Shield, Users, Settings, LogOut, UserPlus, Key, 
   Receipt, Calendar, Camera, UserCheck, UtensilsCrossed, Wallet,
-  ClipboardList, Store
+  ClipboardList, Store, Utensils
 } from 'lucide-react';
 
 type AppModule = 'billing' | 'team' | 'programs' | 'accounts' | 'food_court' | 'photos' | 'registrations' | 'survey' | 'stall_enquiry';
@@ -106,6 +106,18 @@ export default function AdminPanel() {
                     </div>
                     <CardTitle className="text-lg">Permission Management</CardTitle>
                     <CardDescription>Allocate permissions to admins</CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
+
+              <Link to="/admin/food-coupon">
+                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-2">
+                      <Utensils className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <CardTitle className="text-lg">Food Coupon</CardTitle>
+                    <CardDescription>Manage food options and bookings</CardDescription>
                   </CardHeader>
                 </Card>
               </Link>

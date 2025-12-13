@@ -12,6 +12,7 @@ import Survey from "./pages/Survey";
 import SurveyViewPage from "./pages/SurveyViewPage";
 import Team from "./pages/Team";
 import FoodCourt from "./pages/FoodCourt";
+import FoodCoupon from "./pages/FoodCoupon";
 import Billing from "./pages/Billing";
 import Accounts from "./pages/Accounts";
 import PhotoGallery from "./pages/PhotoGallery";
@@ -23,6 +24,7 @@ import ManageAdmins from "./pages/ManageAdmins";
 import PermissionManagement from "./pages/PermissionManagement";
 import SurveyAdmin from "./pages/admin/SurveyAdmin";
 import StallEnquiryAdmin from "./pages/admin/StallEnquiryAdmin";
+import FoodCouponAdmin from "./pages/admin/FoodCouponAdmin";
 import StallEnquiry from "./pages/StallEnquiry";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +46,7 @@ const App = () => (
               <Route path="/survey" element={<Survey />} />
               <Route path="/survey-view" element={<SurveyViewPage />} />
               <Route path="/stall-enquiry" element={<StallEnquiry />} />
+              <Route path="/food-coupon" element={<FoodCoupon />} />
               <Route path="/stall-login" element={<StallLogin />} />
               <Route path="/admin-login" element={<AdminLogin />} />
               
@@ -58,6 +61,7 @@ const App = () => (
               <Route path="/admin/permissions" element={<PermissionManagement />} />
               <Route path="/admin/survey" element={<SurveyAdmin />} />
               <Route path="/admin/stall-enquiry" element={<StallEnquiryAdmin />} />
+              <Route path="/admin/food-coupon" element={<FoodCouponAdmin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
