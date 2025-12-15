@@ -17,8 +17,17 @@ import {
   ChevronDown,
   X,
   CheckCircle,
-  Pencil
+  Pencil,
+  BarChart3,
+  Store
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +39,7 @@ type Product = Tables<"products">;
 type BillingTransaction = Tables<"billing_transactions">;
 type Registration = Tables<"registrations">;
 type Payment = Tables<"payments">;
+type Panchayath = Tables<"panchayaths">;
 
 interface BillItem {
   id: string;
@@ -67,6 +77,10 @@ export default function Billing() {
     mobile: "",
     amount: ""
   });
+
+  // Stall Summary state
+  const [summaryPanchayath, setSummaryPanchayath] = useState<string>("all");
+  const [summaryStallId, setSummaryStallId] = useState<string>("");
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -156,6 +170,19 @@ export default function Billing() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Registration[];
+    }
+  });
+
+  // Fetch panchayaths
+  const { data: panchayaths = [] } = useQuery({
+    queryKey: ['panchayaths'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('panchayaths')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data as Panchayath[];
     }
   });
 
@@ -492,6 +519,48 @@ export default function Billing() {
   const totalCollectedFromStallRegs = stallPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
   const totalCollectedFromOtherRegs = registrations.reduce((sum, reg) => sum + Number(reg.amount), 0);
 
+  // Stall Summary calculations
+  const summaryStalls = summaryPanchayath === "all" 
+    ? allStalls 
+    : allStalls.filter(s => s.panchayath_id === summaryPanchayath);
+  
+  const selectedSummaryStall = summaryStallId ? allStalls.find(s => s.id === summaryStallId) : null;
+  
+  const stallBills = summaryStallId 
+    ? bills.filter((b: any) => b.stall_id === summaryStallId)
+    : [];
+  
+  const stallTotalSales = stallBills.reduce((sum: number, bill: any) => sum + Number(bill.total), 0);
+  const stallPaidSales = stallBills.filter((b: any) => b.status === 'paid').reduce((sum: number, bill: any) => sum + Number(bill.total), 0);
+  const stallPendingSales = stallBills.filter((b: any) => b.status === 'pending').reduce((sum: number, bill: any) => sum + Number(bill.total), 0);
+  
+  // Calculate commission from bills
+  const stallCommission = stallBills.reduce((sum: number, bill: any) => {
+    const items = bill.items as BillItem[];
+    if (!Array.isArray(items)) return sum;
+    return sum + items.reduce((itemSum, item) => {
+      const margin = item.event_margin || 20;
+      return itemSum + (item.price * item.quantity * margin / 100);
+    }, 0);
+  }, 0);
+  
+  // Items sold details
+  const itemsSoldMap = new Map<string, { name: string; quantity: number; total: number }>();
+  stallBills.forEach((bill: any) => {
+    const items = bill.items as BillItem[];
+    if (!Array.isArray(items)) return;
+    items.forEach(item => {
+      const existing = itemsSoldMap.get(item.name);
+      if (existing) {
+        existing.quantity += item.quantity;
+        existing.total += item.price * item.quantity;
+      } else {
+        itemsSoldMap.set(item.name, { name: item.name, quantity: item.quantity, total: item.price * item.quantity });
+      }
+    });
+  });
+  const itemsSold = Array.from(itemsSoldMap.values()).sort((a, b) => b.total - a.total);
+
   return (
     <PageLayout>
       <div className="container py-8">
@@ -501,7 +570,7 @@ export default function Billing() {
         </div>
 
         <Tabs defaultValue="billing" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="billing" className="flex items-center gap-2">
               <Receipt className="h-4 w-4" />
               Billing
@@ -513,6 +582,10 @@ export default function Billing() {
             <TabsTrigger value="registrations" className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
               Registrations
+            </TabsTrigger>
+            <TabsTrigger value="stall-summary" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Stall Summary
             </TabsTrigger>
           </TabsList>
 
@@ -1154,6 +1227,188 @@ export default function Billing() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="stall-summary">
+            <div className="space-y-6">
+              {/* Filters */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Select Stall
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Filter by Panchayath</Label>
+                      <Select value={summaryPanchayath} onValueChange={(val) => { setSummaryPanchayath(val); setSummaryStallId(""); }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Panchayaths" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Panchayaths</SelectItem>
+                          {panchayaths.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Select Stall</Label>
+                      <Select value={summaryStallId} onValueChange={setSummaryStallId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a stall..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {summaryStalls.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground">No stalls found</div>
+                          ) : (
+                            summaryStalls.map((stall) => (
+                              <SelectItem key={stall.id} value={stall.id}>
+                                {stall.counter_number ? `#${stall.counter_number} - ` : ''}{stall.counter_name} ({stall.participant_name})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Summary Details */}
+              {selectedSummaryStall ? (
+                <>
+                  {/* Stall Info Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{selectedSummaryStall.counter_name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Participant</p>
+                          <p className="font-medium">{selectedSummaryStall.participant_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Counter Number</p>
+                          <p className="font-medium">{selectedSummaryStall.counter_number || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Mobile</p>
+                          <p className="font-medium">{selectedSummaryStall.mobile || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Status</p>
+                          <Badge variant={selectedSummaryStall.is_verified ? 'default' : 'secondary'}>
+                            {selectedSummaryStall.is_verified ? 'Verified' : 'Not Verified'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Sales Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Total Sales</p>
+                        <p className="text-2xl font-bold text-primary">₹{stallTotalSales.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{stallBills.length} bills</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Paid Sales</p>
+                        <p className="text-2xl font-bold text-green-600">₹{stallPaidSales.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Pending Sales</p>
+                        <p className="text-2xl font-bold text-amber-600">₹{stallPendingSales.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5">
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">Commission</p>
+                        <p className="text-2xl font-bold text-secondary-foreground">₹{stallCommission.toFixed(2)}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Items Sold Table */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Items Sold</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {itemsSold.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-8">No items sold yet</p>
+                      ) : (
+                        <div className="border border-border rounded-lg overflow-hidden">
+                          <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 text-sm font-medium text-muted-foreground border-b border-border">
+                            <div>Item Name</div>
+                            <div className="text-center">Quantity</div>
+                            <div className="text-right">Total</div>
+                          </div>
+                          <div className="divide-y divide-border">
+                            {itemsSold.map((item, idx) => (
+                              <div key={idx} className="grid grid-cols-3 gap-4 p-3 items-center">
+                                <div className="font-medium">{item.name}</div>
+                                <div className="text-center">{item.quantity}</div>
+                                <div className="text-right font-semibold text-primary">₹{item.total.toFixed(2)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Bills */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recent Bills ({stallBills.length})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {stallBills.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-8">No bills found for this stall</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {stallBills.slice(0, 10).map((bill: any) => (
+                            <div key={bill.id} className="p-3 border border-border rounded-lg flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline">#{bill.serial_number || '-'}</Badge>
+                                  <Badge variant={bill.status === 'paid' ? 'default' : 'secondary'}>
+                                    {bill.status === 'paid' ? 'Paid' : 'Pending'}
+                                  </Badge>
+                                </div>
+                                {bill.customer_name && <p className="text-sm mt-1">{bill.customer_name}</p>}
+                                <p className="text-xs text-muted-foreground mt-1">{formatDate(bill.created_at)}</p>
+                              </div>
+                              <span className="text-lg font-bold text-primary">₹{bill.total}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="py-12">
+                    <div className="text-center text-muted-foreground">
+                      <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a stall to view sales summary</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
