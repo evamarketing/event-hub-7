@@ -490,6 +490,7 @@ export type Database = {
       stalls: {
         Row: {
           counter_name: string
+          counter_number: string | null
           created_at: string | null
           email: string | null
           id: string
@@ -502,6 +503,7 @@ export type Database = {
         }
         Insert: {
           counter_name: string
+          counter_number?: string | null
           created_at?: string | null
           email?: string | null
           id?: string
@@ -514,6 +516,7 @@ export type Database = {
         }
         Update: {
           counter_name?: string
+          counter_number?: string | null
           created_at?: string | null
           email?: string | null
           id?: string

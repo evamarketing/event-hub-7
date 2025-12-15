@@ -16,7 +16,10 @@ import {
   CreditCard,
   FileText,
   Eye,
-  ArrowRightCircle
+  ArrowRightCircle,
+  Edit,
+  Search,
+  AlertTriangle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +30,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Stall = Tables<"stalls"> & { panchayaths?: { name: string } | null };
+type Stall = Tables<"stalls"> & { panchayaths?: { name: string } | null; counter_number?: string | null };
 type Product = Tables<"products">;
 
 interface Enquiry {
@@ -54,11 +57,24 @@ export default function FoodCourt() {
   
   const [newStall, setNewStall] = useState({
     counter_name: "",
+    counter_number: "",
     participant_name: "",
     mobile: "",
     registration_fee: "",
     panchayath_id: ""
   });
+
+  const [editingStall, setEditingStall] = useState<Stall | null>(null);
+  const [editStallData, setEditStallData] = useState({
+    counter_name: "",
+    counter_number: "",
+    participant_name: "",
+    mobile: "",
+    registration_fee: "",
+    panchayath_id: ""
+  });
+
+  const [stallSearchQuery, setStallSearchQuery] = useState("");
 
   const [stallPanchayathFilter, setStallPanchayathFilter] = useState<string>("");
   const [productPanchayathFilter, setProductPanchayathFilter] = useState<string>("");
@@ -166,10 +182,19 @@ export default function FoodCourt() {
   // Add stall mutation
   const addStallMutation = useMutation({
     mutationFn: async (stall: typeof newStall) => {
+      // Check for duplicate counter number
+      if (stall.counter_number && stall.counter_number.trim()) {
+        const existingStall = stalls.find(s => s.counter_number === stall.counter_number.trim());
+        if (existingStall) {
+          throw new Error(`Counter number already exists for stall: ${existingStall.counter_name}`);
+        }
+      }
+      
       const { data, error } = await supabase
         .from('stalls')
         .insert({
           counter_name: stall.counter_name,
+          counter_number: stall.counter_number || null,
           participant_name: stall.participant_name,
           mobile: stall.mobile || null,
           registration_fee: stall.registration_fee ? parseFloat(stall.registration_fee) : 0,
@@ -183,12 +208,46 @@ export default function FoodCourt() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stalls'] });
-      setNewStall({ counter_name: "", participant_name: "", mobile: "", registration_fee: "", panchayath_id: "" });
+      setNewStall({ counter_name: "", counter_number: "", participant_name: "", mobile: "", registration_fee: "", panchayath_id: "" });
       setShowStallForm(false);
       toast.success("Stall registered successfully!");
     },
     onError: (error) => {
       toast.error("Failed to register stall: " + error.message);
+    }
+  });
+
+  // Edit stall mutation
+  const editStallMutation = useMutation({
+    mutationFn: async (data: { id: string; stall: typeof editStallData }) => {
+      // Check for duplicate counter number (excluding current stall)
+      if (data.stall.counter_number && data.stall.counter_number.trim()) {
+        const existingStall = stalls.find(s => s.counter_number === data.stall.counter_number.trim() && s.id !== data.id);
+        if (existingStall) {
+          throw new Error(`Counter number already exists for stall: ${existingStall.counter_name}`);
+        }
+      }
+      
+      const { error } = await supabase
+        .from('stalls')
+        .update({
+          counter_name: data.stall.counter_name,
+          counter_number: data.stall.counter_number || null,
+          participant_name: data.stall.participant_name,
+          mobile: data.stall.mobile || null,
+          registration_fee: data.stall.registration_fee ? parseFloat(data.stall.registration_fee) : 0,
+          panchayath_id: data.stall.panchayath_id || null
+        })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stalls'] });
+      setEditingStall(null);
+      toast.success("Stall updated successfully!");
+    },
+    onError: (error) => {
+      toast.error("Failed to update stall: " + error.message);
     }
   });
 
@@ -308,8 +367,43 @@ export default function FoodCourt() {
         return;
       }
     }
+
+    // Check for duplicate counter number
+    if (newStall.counter_number && newStall.counter_number.trim()) {
+      const existingStall = stalls.find(s => s.counter_number === newStall.counter_number.trim());
+      if (existingStall) {
+        toast.error(`Counter number already exists for stall: ${existingStall.counter_name}`);
+        return;
+      }
+    }
     
     addStallMutation.mutate(newStall);
+  };
+
+  const handleEditStall = () => {
+    if (!editStallData.counter_name || !editStallData.participant_name) {
+      toast.error("Please fill required fields");
+      return;
+    }
+    
+    if (editingStall) {
+      editStallMutation.mutate({
+        id: editingStall.id,
+        stall: editStallData
+      });
+    }
+  };
+
+  const openEditDialog = (stall: Stall) => {
+    setEditingStall(stall);
+    setEditStallData({
+      counter_name: stall.counter_name,
+      counter_number: stall.counter_number || "",
+      participant_name: stall.participant_name,
+      mobile: stall.mobile || "",
+      registration_fee: stall.registration_fee?.toString() || "",
+      panchayath_id: stall.panchayath_id || ""
+    });
   };
 
   const handleAddProduct = () => {
@@ -399,6 +493,15 @@ export default function FoodCourt() {
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="counterNumber">Counter Number</Label>
+                      <Input
+                        id="counterNumber"
+                        value={newStall.counter_number}
+                        onChange={(e) => setNewStall({ ...newStall, counter_number: e.target.value })}
+                        placeholder="Enter counter number"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="owner">Participant Name *</Label>
                       <Input
                         id="owner"
@@ -475,13 +578,14 @@ export default function FoodCourt() {
                       </Badge>
                     </div>
                     <div className="mt-4 text-sm text-muted-foreground">
+                      {stall.counter_number && <p className="font-medium text-primary">Counter #: {stall.counter_number}</p>}
                       {stall.panchayaths?.name && <p>Panchayath: {stall.panchayaths.name}</p>}
                       {stall.mobile && <p>Phone: {stall.mobile}</p>}
                       {stall.email && <p>Email: {stall.email}</p>}
                       {stall.registration_fee && <p>Fee: ₹{stall.registration_fee}</p>}
                       <p className="mt-2 text-xs">Products: {getStallProducts(stall.id).length}</p>
                     </div>
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-4 flex gap-2 flex-wrap">
                       {!stall.is_verified && (
                         <Button 
                           size="sm" 
@@ -491,6 +595,13 @@ export default function FoodCourt() {
                           Paid Stall Registration
                         </Button>
                       )}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => openEditDialog(stall)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="destructive"
@@ -507,31 +618,51 @@ export default function FoodCourt() {
           </TabsContent>
 
           <TabsContent value="products">
-            <div className="flex justify-between mb-4 gap-4">
-              <select
-                value={productPanchayathFilter}
-                onChange={(e) => {
-                  setProductPanchayathFilter(e.target.value);
-                  setSelectedStall(""); // Reset stall selection when panchayath changes
-                }}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="">All Panchayaths</option>
-                {panchayaths.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+            <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
+              <div className="flex gap-4 flex-wrap">
+                <select
+                  value={productPanchayathFilter}
+                  onChange={(e) => {
+                    setProductPanchayathFilter(e.target.value);
+                    setSelectedStall(""); // Reset stall selection when panchayath changes
+                    setStallSearchQuery(""); // Reset search when panchayath changes
+                  }}
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">All Panchayaths</option>
+                  {panchayaths.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={stallSearchQuery}
+                    onChange={(e) => setStallSearchQuery(e.target.value)}
+                    placeholder="Search by counter number..."
+                    className="pl-9 h-10 w-48"
+                  />
+                </div>
+              </div>
               <div className="flex gap-4">
                 <select
                   value={selectedStall}
                   onChange={(e) => setSelectedStall(e.target.value)}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm min-w-[200px]"
                 >
                   <option value="">Select Stall</option>
                   {stalls
-                    .filter(s => s.is_verified && (!productPanchayathFilter || s.panchayath_id === productPanchayathFilter))
+                    .filter(s => {
+                      const matchesPanchayath = !productPanchayathFilter || s.panchayath_id === productPanchayathFilter;
+                      const matchesSearch = !stallSearchQuery || 
+                        s.counter_number?.toLowerCase().includes(stallSearchQuery.toLowerCase()) ||
+                        s.counter_name.toLowerCase().includes(stallSearchQuery.toLowerCase());
+                      return s.is_verified && matchesPanchayath && matchesSearch;
+                    })
                     .map(s => (
-                      <option key={s.id} value={s.id}>{s.counter_name}</option>
+                      <option key={s.id} value={s.id}>
+                        {s.counter_number ? `#${s.counter_number} - ${s.counter_name}` : s.counter_name}
+                      </option>
                     ))}
                 </select>
                 <Button 
@@ -919,6 +1050,88 @@ export default function FoodCourt() {
                     Register Stall
                   </Button>
                   <Button variant="outline" onClick={() => setConvertingEnquiry(null)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Stall Dialog */}
+        <Dialog open={!!editingStall} onOpenChange={(open) => !open && setEditingStall(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Stall</DialogTitle>
+            </DialogHeader>
+            {editingStall && (
+              <div className="space-y-4 py-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editCounterName">Counter Name *</Label>
+                    <Input
+                      id="editCounterName"
+                      value={editStallData.counter_name}
+                      onChange={(e) => setEditStallData({ ...editStallData, counter_name: e.target.value })}
+                      placeholder="Enter counter name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editCounterNumber">Counter Number</Label>
+                    <Input
+                      id="editCounterNumber"
+                      value={editStallData.counter_number}
+                      onChange={(e) => setEditStallData({ ...editStallData, counter_number: e.target.value })}
+                      placeholder="Enter counter number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editParticipantName">Participant Name *</Label>
+                    <Input
+                      id="editParticipantName"
+                      value={editStallData.participant_name}
+                      onChange={(e) => setEditStallData({ ...editStallData, participant_name: e.target.value })}
+                      placeholder="Enter participant name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editPanchayath">Panchayath</Label>
+                    <select
+                      id="editPanchayath"
+                      value={editStallData.panchayath_id}
+                      onChange={(e) => setEditStallData({ ...editStallData, panchayath_id: e.target.value })}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">Select Panchayath</option>
+                      {panchayaths.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editMobile">Mobile</Label>
+                    <Input
+                      id="editMobile"
+                      value={editStallData.mobile}
+                      onChange={(e) => setEditStallData({ ...editStallData, mobile: e.target.value })}
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editFee">Registration Fee (₹)</Label>
+                    <Input
+                      id="editFee"
+                      type="number"
+                      value={editStallData.registration_fee}
+                      onChange={(e) => setEditStallData({ ...editStallData, registration_fee: e.target.value })}
+                      placeholder="Enter registration fee"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleEditStall} disabled={editStallMutation.isPending}>
+                    {editStallMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Update Stall
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingStall(null)}>Cancel</Button>
                 </div>
               </div>
             )}
