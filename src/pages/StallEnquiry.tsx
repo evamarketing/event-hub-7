@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Store, Send, CheckCircle, Plus, Trash2 } from 'lucide-react';
+import { Store, Send, CheckCircle, Plus, Trash2, MessageCircle } from 'lucide-react';
 
 interface EnquiryField {
   id: string;
@@ -240,6 +240,21 @@ export default function StallEnquiry() {
     submitMutation.mutate();
   };
 
+  const handleWhatsAppShare = () => {
+    const message = `സ്റ്റാൾ അന്വേഷണം സമർപ്പിച്ചു
+
+പേര്: ${name}
+മൊബൈൽ: ${mobile}
+പഞ്ചായത്ത്: ${panchayaths.find(p => p.id === selectedPanchayath)?.name || ''}
+വാർഡ്: ${wards.find(w => w.id === selectedWard)?.ward_number || ''}
+
+ഉൽപ്പന്നങ്ങൾ:
+${products.map((p, i) => `${i + 1}. ${p.product_name} - CP: ₹${p.cost_price}, SP: ₹${p.selling_price}`).join('\n')}`;
+    
+    const whatsappUrl = `https://wa.me/919526786945?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (isSubmitted) {
     return (
       <PageLayout>
@@ -251,9 +266,18 @@ export default function StallEnquiry() {
               <p className="text-muted-foreground mb-6">
                 നിങ്ങളുടെ സ്റ്റാൾ അന്വേഷണം വിജയകരമായി സമർപ്പിച്ചു. ഞങ്ങൾ ഉടൻ നിങ്ങളെ ബന്ധപ്പെടും.
               </p>
-              <Button onClick={() => window.location.reload()}>
-                പുതിയ അപേക്ഷ സമർപ്പിക്കുക
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={handleWhatsAppShare}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  WhatsApp വഴി അറിയിക്കുക
+                </Button>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  പുതിയ അപേക്ഷ സമർപ്പിക്കുക
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
