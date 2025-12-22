@@ -111,13 +111,37 @@ export default function StallEnquiryAdmin() {
     }
   });
 
-  // Calculate enquiry count per panchayath
-  const panchayathCounts = enquiries.reduce((acc, e) => {
-    if (e.panchayath_id) {
+  // Calculate enquiry count per panchayath by status
+  const pendingCountsByPanchayath = enquiries.reduce((acc, e) => {
+    if (e.panchayath_id && e.status === 'pending') {
       acc[e.panchayath_id] = (acc[e.panchayath_id] || 0) + 1;
     }
     return acc;
   }, {} as Record<string, number>);
+
+  const completedCountsByPanchayath = enquiries.reduce((acc, e) => {
+    if (e.panchayath_id && e.status === 'verified') {
+      acc[e.panchayath_id] = (acc[e.panchayath_id] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Sort panchayaths by count (for pending tab)
+  const sortedPanchayathsForPending = [...panchayaths].sort((a, b) => {
+    const countA = pendingCountsByPanchayath[a.id] || 0;
+    const countB = pendingCountsByPanchayath[b.id] || 0;
+    return countB - countA;
+  });
+
+  // Sort panchayaths by count (for completed tab)
+  const sortedPanchayathsForCompleted = [...panchayaths].sort((a, b) => {
+    const countA = completedCountsByPanchayath[a.id] || 0;
+    const countB = completedCountsByPanchayath[b.id] || 0;
+    return countB - countA;
+  });
+
+  const totalPendingCount = enquiries.filter(e => e.status === 'pending').length;
+  const totalCompletedCount = enquiries.filter(e => e.status === 'verified').length;
 
   // Filter enquiries by panchayath, mobile, and status
   const filteredEnquiries = enquiries.filter(e => {
@@ -544,12 +568,17 @@ export default function StallEnquiryAdmin() {
                         <SelectValue placeholder="All Panchayaths" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Panchayaths ({enquiries.length})</SelectItem>
-                        {panchayaths.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} ({panchayathCounts[p.id] || 0})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="all">All Panchayaths ({totalPendingCount})</SelectItem>
+                        {sortedPanchayathsForPending.map((p) => {
+                          const count = pendingCountsByPanchayath[p.id] || 0;
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              <span className={count > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                                {p.name} ({count})
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -649,12 +678,17 @@ export default function StallEnquiryAdmin() {
                         <SelectValue placeholder="All Panchayaths" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Panchayaths ({enquiries.length})</SelectItem>
-                        {panchayaths.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} ({panchayathCounts[p.id] || 0})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="all">All Panchayaths ({totalCompletedCount})</SelectItem>
+                        {sortedPanchayathsForCompleted.map((p) => {
+                          const count = completedCountsByPanchayath[p.id] || 0;
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              <span className={count > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                                {p.name} ({count})
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
