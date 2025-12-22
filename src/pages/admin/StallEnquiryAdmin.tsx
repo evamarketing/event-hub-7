@@ -418,19 +418,19 @@ export default function StallEnquiryAdmin() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue={defaultTab}>
-              <TabsList className="mb-4 flex-wrap">
-                <TabsTrigger value="pending-enquiries">Pending Enquiries ({pendingEnquiries.length})</TabsTrigger>
-                <TabsTrigger value="completed-enquiries">Completed Enquiries ({completedEnquiries.length})</TabsTrigger>
-                <TabsTrigger value="help-requests" className="relative">
+              <TabsList className="mb-4 flex flex-wrap h-auto gap-1">
+                <TabsTrigger value="pending-enquiries" className="text-xs sm:text-sm">Pending ({pendingEnquiries.length})</TabsTrigger>
+                <TabsTrigger value="completed-enquiries" className="text-xs sm:text-sm">Completed ({completedEnquiries.length})</TabsTrigger>
+                <TabsTrigger value="help-requests" className="relative text-xs sm:text-sm">
                   <HelpCircle className="h-4 w-4 mr-1" />
-                  Help Requests
+                  <span className="hidden sm:inline">Help</span>
                   {pendingHelpRequests.length > 0 && (
-                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
                       {pendingHelpRequests.length}
                     </span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="fields">Form Fields</TabsTrigger>
+                <TabsTrigger value="fields" className="text-xs sm:text-sm">Fields</TabsTrigger>
               </TabsList>
 
               <TabsContent value="fields">
@@ -627,11 +627,11 @@ export default function StallEnquiryAdmin() {
 
               <TabsContent value="pending-enquiries">
                 {/* Filters */}
-                <div className="mb-4 flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Panchayath:</Label>
+                <div className="mb-4 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Label className="text-sm font-medium whitespace-nowrap">Panchayath:</Label>
                     <Select value={selectedPanchayath} onValueChange={setSelectedPanchayath}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="All Panchayaths" />
                       </SelectTrigger>
                       <SelectContent>
@@ -649,99 +649,143 @@ export default function StallEnquiryAdmin() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Mobile:</Label>
-                    <div className="relative">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Label className="text-sm font-medium whitespace-nowrap">Mobile:</Label>
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Search by mobile..."
                         value={mobileSearch}
                         onChange={(e) => setMobileSearch(e.target.value)}
-                        className="w-[180px] pl-8"
+                        className="w-full sm:w-[180px] pl-8"
                       />
                     </div>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Showing {pendingEnquiries.length} pending enquiries
+                    Showing {pendingEnquiries.length} pending
                   </span>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Panchayath</TableHead>
-                      <TableHead>Ward</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {enquiriesLoading ? (
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {enquiriesLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  ) : pendingEnquiries.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {selectedPanchayath !== 'all' ? 'No pending enquiries for selected panchayath' : 'No pending enquiries'}
+                    </div>
+                  ) : (
+                    pendingEnquiries.map((enquiry) => (
+                      <Card key={enquiry.id} className="p-4">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{enquiry.name}</p>
+                            <p className="text-sm text-muted-foreground">{enquiry.mobile}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {enquiry.panchayaths?.name || '-'} • Ward {enquiry.wards?.ward_number || '-'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(enquiry.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingEnquiry(enquiry)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => verifyEnquiryMutation.mutate(enquiry.id)}
+                              disabled={verifyEnquiryMutation.isPending}
+                            >
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeletingEnquiry(enquiry)}>
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>Panchayath</TableHead>
+                        <TableHead>Ward</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ) : pendingEnquiries.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
-                          {selectedPanchayath !== 'all' ? 'No pending enquiries for selected panchayath' : 'No pending enquiries'}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      pendingEnquiries.map((enquiry) => (
-                        <TableRow key={enquiry.id}>
-                          <TableCell className="font-medium">{enquiry.name}</TableCell>
-                          <TableCell>{enquiry.mobile}</TableCell>
-                          <TableCell>{enquiry.panchayaths?.name || '-'}</TableCell>
-                          <TableCell>
-                            {enquiry.wards 
-                              ? `${enquiry.wards.ward_number}${enquiry.wards.ward_name ? ` - ${enquiry.wards.ward_name}` : ''}`
-                              : '-'}
-                          </TableCell>
-                          <TableCell>{new Date(enquiry.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => setViewingEnquiry(enquiry)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => verifyEnquiryMutation.mutate(enquiry.id)}
-                                disabled={verifyEnquiryMutation.isPending}
-                                title="Verify"
-                              >
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => setDeletingEnquiry(enquiry)}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {enquiriesLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                        </TableRow>
+                      ) : pendingEnquiries.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            {selectedPanchayath !== 'all' ? 'No pending enquiries for selected panchayath' : 'No pending enquiries'}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        pendingEnquiries.map((enquiry) => (
+                          <TableRow key={enquiry.id}>
+                            <TableCell className="font-medium">{enquiry.name}</TableCell>
+                            <TableCell>{enquiry.mobile}</TableCell>
+                            <TableCell>{enquiry.panchayaths?.name || '-'}</TableCell>
+                            <TableCell>
+                              {enquiry.wards 
+                                ? `${enquiry.wards.ward_number}${enquiry.wards.ward_name ? ` - ${enquiry.wards.ward_name}` : ''}`
+                                : '-'}
+                            </TableCell>
+                            <TableCell>{new Date(enquiry.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => setViewingEnquiry(enquiry)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => verifyEnquiryMutation.mutate(enquiry.id)}
+                                  disabled={verifyEnquiryMutation.isPending}
+                                  title="Verify"
+                                >
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setDeletingEnquiry(enquiry)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </TabsContent>
 
               <TabsContent value="completed-enquiries">
                 {/* Filters */}
-                <div className="mb-4 flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Panchayath:</Label>
+                <div className="mb-4 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Label className="text-sm font-medium whitespace-nowrap">Panchayath:</Label>
                     <Select value={selectedPanchayath} onValueChange={setSelectedPanchayath}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="All Panchayaths" />
                       </SelectTrigger>
                       <SelectContent>
@@ -759,90 +803,134 @@ export default function StallEnquiryAdmin() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Mobile:</Label>
-                    <div className="relative">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                    <Label className="text-sm font-medium whitespace-nowrap">Mobile:</Label>
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Search by mobile..."
                         value={mobileSearch}
                         onChange={(e) => setMobileSearch(e.target.value)}
-                        className="w-[180px] pl-8"
+                        className="w-full sm:w-[180px] pl-8"
                       />
                     </div>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    Showing {completedEnquiries.length} completed enquiries
+                    Showing {completedEnquiries.length} completed
                   </span>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Panchayath</TableHead>
-                      <TableHead>Ward</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {enquiriesLoading ? (
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {enquiriesLoading ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  ) : completedEnquiries.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {selectedPanchayath !== 'all' ? 'No completed enquiries for selected panchayath' : 'No completed enquiries'}
+                    </div>
+                  ) : (
+                    completedEnquiries.map((enquiry) => (
+                      <Card key={enquiry.id} className="p-4">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{enquiry.name}</p>
+                            <p className="text-sm text-muted-foreground">{enquiry.mobile}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {enquiry.panchayaths?.name || '-'} • Ward {enquiry.wards?.ward_number || '-'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(enquiry.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingEnquiry(enquiry)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => restoreEnquiryMutation.mutate(enquiry.id)}
+                              disabled={restoreEnquiryMutation.isPending}
+                            >
+                              <RotateCcw className="h-4 w-4 text-orange-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeletingEnquiry(enquiry)}>
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>Panchayath</TableHead>
+                        <TableHead>Ward</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ) : completedEnquiries.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
-                          {selectedPanchayath !== 'all' ? 'No completed enquiries for selected panchayath' : 'No completed enquiries'}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      completedEnquiries.map((enquiry) => (
-                        <TableRow key={enquiry.id}>
-                          <TableCell className="font-medium">{enquiry.name}</TableCell>
-                          <TableCell>{enquiry.mobile}</TableCell>
-                          <TableCell>{enquiry.panchayaths?.name || '-'}</TableCell>
-                          <TableCell>
-                            {enquiry.wards 
-                              ? `${enquiry.wards.ward_number}${enquiry.wards.ward_name ? ` - ${enquiry.wards.ward_name}` : ''}`
-                              : '-'}
-                          </TableCell>
-                          <TableCell>{new Date(enquiry.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => setViewingEnquiry(enquiry)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => restoreEnquiryMutation.mutate(enquiry.id)}
-                                disabled={restoreEnquiryMutation.isPending}
-                                title="Restore to Pending"
-                              >
-                                <RotateCcw className="h-4 w-4 text-orange-600" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => setDeletingEnquiry(enquiry)}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {enquiriesLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center">Loading...</TableCell>
+                        </TableRow>
+                      ) : completedEnquiries.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            {selectedPanchayath !== 'all' ? 'No completed enquiries for selected panchayath' : 'No completed enquiries'}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        completedEnquiries.map((enquiry) => (
+                          <TableRow key={enquiry.id}>
+                            <TableCell className="font-medium">{enquiry.name}</TableCell>
+                            <TableCell>{enquiry.mobile}</TableCell>
+                            <TableCell>{enquiry.panchayaths?.name || '-'}</TableCell>
+                            <TableCell>
+                              {enquiry.wards 
+                                ? `${enquiry.wards.ward_number}${enquiry.wards.ward_name ? ` - ${enquiry.wards.ward_name}` : ''}`
+                                : '-'}
+                            </TableCell>
+                            <TableCell>{new Date(enquiry.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => setViewingEnquiry(enquiry)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => restoreEnquiryMutation.mutate(enquiry.id)}
+                                  disabled={restoreEnquiryMutation.isPending}
+                                  title="Restore to Pending"
+                                >
+                                  <RotateCcw className="h-4 w-4 text-orange-600" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setDeletingEnquiry(enquiry)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </TabsContent>
 
               <TabsContent value="help-requests">
@@ -852,67 +940,121 @@ export default function StallEnquiryAdmin() {
                   </span>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Mobile</TableHead>
-                      <TableHead>Message</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {helpRequests.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
-                          No help requests
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      helpRequests.map((request) => (
-                        <TableRow key={request.id} className={request.status === 'pending' ? 'bg-orange-50' : ''}>
-                          <TableCell className="font-medium">{request.name || '-'}</TableCell>
-                          <TableCell>{request.mobile || '-'}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{request.message}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              request.status === 'pending' 
-                                ? 'bg-orange-100 text-orange-800' 
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {request.status === 'pending' ? 'Pending' : 'Resolved'}
-                            </span>
-                          </TableCell>
-                          <TableCell>{new Date(request.created_at).toLocaleString()}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              {request.status === 'pending' && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => resolveHelpMutation.mutate(request.id)}
-                                  title="Mark as Resolved"
-                                >
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                </Button>
-                              )}
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3">
+                  {helpRequests.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No help requests</div>
+                  ) : (
+                    helpRequests.map((request) => (
+                      <Card key={request.id} className={`p-4 ${request.status === 'pending' ? 'border-orange-200 bg-orange-50' : ''}`}>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold truncate">{request.name || '-'}</p>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                request.status === 'pending' 
+                                  ? 'bg-orange-100 text-orange-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {request.status === 'pending' ? 'Pending' : 'Resolved'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{request.mobile || '-'}</p>
+                            <p className="text-sm mt-2 line-clamp-2">{request.message}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(request.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {request.status === 'pending' && (
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                onClick={() => deleteHelpMutation.mutate(request.id)}
-                                title="Delete"
+                                className="h-8 w-8"
+                                onClick={() => resolveHelpMutation.mutate(request.id)}
                               >
-                                <Trash2 className="h-4 w-4 text-red-600" />
+                                <CheckCircle className="h-4 w-4 text-green-600" />
                               </Button>
-                            </div>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => deleteHelpMutation.mutate(request.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Mobile</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {helpRequests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            No help requests
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        helpRequests.map((request) => (
+                          <TableRow key={request.id} className={request.status === 'pending' ? 'bg-orange-50' : ''}>
+                            <TableCell className="font-medium">{request.name || '-'}</TableCell>
+                            <TableCell>{request.mobile || '-'}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{request.message}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                request.status === 'pending' 
+                                  ? 'bg-orange-100 text-orange-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {request.status === 'pending' ? 'Pending' : 'Resolved'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{new Date(request.created_at).toLocaleString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {request.status === 'pending' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => resolveHelpMutation.mutate(request.id)}
+                                    title="Mark as Resolved"
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => deleteHelpMutation.mutate(request.id)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
