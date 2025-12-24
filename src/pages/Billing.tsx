@@ -113,6 +113,15 @@ export default function Billing() {
   });
   const [returnReason, setReturnReason] = useState("");
 
+  // Registration Edit/Delete state
+  const [editingRegistration, setEditingRegistration] = useState<Registration | null>(null);
+  const [editRegForm, setEditRegForm] = useState({
+    name: "",
+    category: "",
+    mobile: "",
+    amount: ""
+  });
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -409,6 +418,45 @@ export default function Billing() {
     },
     onError: (error) => {
       toast.error("Failed to complete registration: " + error.message);
+    }
+  });
+
+  // Update registration mutation
+  const updateRegMutation = useMutation({
+    mutationFn: async (data: { id: string; name: string; category?: string; mobile?: string; amount: number }) => {
+      const { error } = await supabase
+        .from('registrations')
+        .update({
+          name: data.name,
+          category: data.category || null,
+          mobile: data.mobile || null,
+          amount: data.amount
+        })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registrations'] });
+      setEditingRegistration(null);
+      toast.success("Registration updated!");
+    },
+    onError: (error) => {
+      toast.error("Failed to update registration: " + error.message);
+    }
+  });
+
+  // Delete registration mutation
+  const deleteRegMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('registrations').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registrations'] });
+      toast.success("Registration deleted!");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete registration: " + error.message);
     }
   });
 
@@ -2134,7 +2182,37 @@ export default function Billing() {
                         <div key={reg.id} className="p-4 border border-border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-semibold text-foreground">{reg.name}</span>
-                            <Badge variant="outline">Employment Booking</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">Employment Booking</Badge>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  setEditingRegistration(reg);
+                                  setEditRegForm({
+                                    name: reg.name,
+                                    category: reg.category || "",
+                                    mobile: reg.mobile || "",
+                                    amount: reg.amount?.toString() || ""
+                                  });
+                                }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => {
+                                  if (confirm("Are you sure you want to delete this registration?")) {
+                                    deleteRegMutation.mutate(reg.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                           {reg.category && (
                             <p className="text-sm text-muted-foreground">Category: {reg.category}</p>
@@ -2276,7 +2354,37 @@ export default function Billing() {
                         <div key={reg.id} className="p-4 border border-border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-semibold text-foreground">{reg.name}</span>
-                            <Badge variant="outline">Employment Reg.</Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">Employment Reg.</Badge>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7"
+                                onClick={() => {
+                                  setEditingRegistration(reg);
+                                  setEditRegForm({
+                                    name: reg.name,
+                                    category: reg.category || "",
+                                    mobile: reg.mobile || "",
+                                    amount: reg.amount?.toString() || ""
+                                  });
+                                }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-destructive"
+                                onClick={() => {
+                                  if (confirm("Are you sure you want to delete this registration?")) {
+                                    deleteRegMutation.mutate(reg.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                           {reg.category && (
                             <p className="text-sm text-muted-foreground">Category: {reg.category}</p>
@@ -2525,6 +2633,77 @@ export default function Billing() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Registration Dialog */}
+        <Dialog open={!!editingRegistration} onOpenChange={(open) => !open && setEditingRegistration(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Registration</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-reg-name">Name *</Label>
+                <Input
+                  id="edit-reg-name"
+                  value={editRegForm.name}
+                  onChange={(e) => setEditRegForm({ ...editRegForm, name: e.target.value })}
+                  placeholder="Enter name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-reg-category">Category</Label>
+                <Input
+                  id="edit-reg-category"
+                  value={editRegForm.category}
+                  onChange={(e) => setEditRegForm({ ...editRegForm, category: e.target.value })}
+                  placeholder="Enter category"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-reg-mobile">Mobile</Label>
+                <Input
+                  id="edit-reg-mobile"
+                  value={editRegForm.mobile}
+                  onChange={(e) => setEditRegForm({ ...editRegForm, mobile: e.target.value })}
+                  placeholder="Enter mobile number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-reg-amount">Amount (₹) *</Label>
+                <Input
+                  id="edit-reg-amount"
+                  type="number"
+                  value={editRegForm.amount}
+                  onChange={(e) => setEditRegForm({ ...editRegForm, amount: e.target.value })}
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    if (!editingRegistration || !editRegForm.name || !editRegForm.amount) {
+                      toast.error("Please fill required fields");
+                      return;
+                    }
+                    updateRegMutation.mutate({
+                      id: editingRegistration.id,
+                      name: editRegForm.name,
+                      category: editRegForm.category || undefined,
+                      mobile: editRegForm.mobile || undefined,
+                      amount: parseFloat(editRegForm.amount)
+                    });
+                  }} 
+                  disabled={updateRegMutation.isPending} 
+                  className="flex-1"
+                >
+                  {updateRegMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setEditingRegistration(null)}>Cancel</Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
