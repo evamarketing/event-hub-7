@@ -163,7 +163,7 @@ export default function CustomerManagement() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
-        <Link to="/admin-panel">
+        <Link to="/admin">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Admin Panel
